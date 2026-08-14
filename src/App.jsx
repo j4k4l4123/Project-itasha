@@ -1,12 +1,15 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { VEHICLE_TYPES, CAR_PANELS, MOTORCYCLE_PANELS, DECAL_PRESETS, REAL_CAR_MODELS } from './utils/constants';
+import {
+  VEHICLE_TYPES, CAR_PANELS, MOTORCYCLE_PANELS, DECAL_PRESETS,
+  REAL_CAR_MODELS, REAL_MOTORCYCLE_MODELS, ITA_WRAP_TEMPLATES
+} from './utils/constants';
 import { textureManager } from './utils/textureManager';
 import { VehicleViewer } from './components/3d/VehicleViewer';
 import { Navbar } from './components/ui/Navbar';
 import { PaintControls } from './components/ui/PaintControls';
 import { LassoCanvasEditor } from './components/editor/LassoCanvasEditor';
 import { ExportModal } from './components/ui/ExportModal';
-import { AlertCircle, Sparkles, Wand2, Flower2, Zap } from 'lucide-react';
+import { AlertCircle, Sparkles, Wand2, Flower2, Zap, Trophy, Mountain } from 'lucide-react';
 
 export default function App() {
   // App State
@@ -33,13 +36,13 @@ export default function App() {
 
   const canvasRef = useRef(null);
 
-  // Show Toast Helper
+  // Helper for notification toast
   const showToast = (message, type = 'info') => {
     setToast({ message, type });
     setTimeout(() => setToast(null), 3500);
   };
 
-  // Re-bake texture maps for all panels when layers or body color changes
+  // Re-bake texture maps for all active panels when layers or body color changes
   const updateAllTextures = useCallback(async (currentLayers, currentColor) => {
     const panelsList = vehicleType === VEHICLE_TYPES.CAR ? CAR_PANELS : MOTORCYCLE_PANELS;
     const newTexturesMap = {};
@@ -73,18 +76,26 @@ export default function App() {
     setHistoryIndex(newHistory.length - 1);
   };
 
-  // Select Vehicle Handler
+  // Select Vehicle Type Handler (Mobil vs Motor)
   const handleSelectVehicle = (type) => {
     setVehicleType(type);
-    setSelectedPanels(type === VEHICLE_TYPES.CAR ? ['hood'] : ['tank']);
-    showToast(`Beralih ke tipe kendaraan: ${type === VEHICLE_TYPES.CAR ? 'Mobil Real 3D' : 'Motor Real 3D'}`, 'success');
+    if (type === VEHICLE_TYPES.CAR) {
+      setModelId('ferrari');
+      setSelectedPanels(['hood']);
+      showToast('Beralih ke Tipe Kendaraan: Mobil Real 3D', 'success');
+    } else {
+      setModelId('superbike');
+      setSelectedPanels(['tank']);
+      showToast('Beralih ke Tipe Kendaraan: Motor Real 3D', 'success');
+    }
   };
 
-  // Select Specific Real Car Model Handler
+  // Select Specific Model Handler
   const handleSelectModel = (mId) => {
     setModelId(mId);
-    const mInfo = REAL_CAR_MODELS.find((m) => m.id === mId);
-    showToast(`Memuat Model 3D Sungguhan: ${mInfo ? mInfo.name : mId}`, 'success');
+    const modelList = vehicleType === VEHICLE_TYPES.CAR ? REAL_CAR_MODELS : REAL_MOTORCYCLE_MODELS;
+    const mInfo = modelList.find((m) => m.id === mId);
+    showToast(`Memuat Model 3D: ${mInfo ? mInfo.name : mId}`, 'success');
   };
 
   // Panel Selection Handlers
@@ -110,7 +121,7 @@ export default function App() {
   // 3D Model Pointer Click Handler
   const handlePanelClick = (partId, isEngine) => {
     if (isEngine) {
-      showToast('🔒 MESIN TERKUNCI! Komponen mesin tidak dapat dipilih atau diedit.', 'warning');
+      showToast('🔒 KOMPONEN MESIN TERKUNCI! Bagian mekanikal mesin tidak dapat dimodifikasi livery.', 'warning');
       return;
     }
     setSelectedPanels([partId]);
@@ -153,7 +164,7 @@ export default function App() {
     showToast(`Livery berhasil diterapkan ke ${selectedPanels.length} panel!`, 'success');
   };
 
-  // Undo / Redo
+  // Undo / Redo Handlers
   const handleUndo = () => {
     if (historyIndex > 0) {
       const prevIdx = historyIndex - 1;
@@ -163,7 +174,7 @@ export default function App() {
       setPanelLayers(state.panelLayers);
       updateAllTextures(state.panelLayers, state.bodyColor);
       setHistoryIndex(prevIdx);
-      showToast('Undo berhasil.', 'info');
+      showToast('Undo aksi terakhir berhasil.', 'info');
     }
   };
 
@@ -176,115 +187,48 @@ export default function App() {
       setPanelLayers(state.panelLayers);
       updateAllTextures(state.panelLayers, state.bodyColor);
       setHistoryIndex(nextIdx);
-      showToast('Redo berhasil.', 'info');
+      showToast('Redo aksi berhasil.', 'info');
     }
   };
 
-  // Reset to Stock
+  // Reset to Factory Stock
   const handleReset = () => {
-    setBodyColor('#39c5bb');
+    const defaultColor = '#39c5bb';
+    setBodyColor(defaultColor);
     setFinishKey('GLOSS');
     setPanelLayers({});
-    updateAllTextures({}, '#39c5bb');
+    updateAllTextures({}, defaultColor);
     showToast('Reset kendaraan ke kondisi default stock pabrik.', 'info');
   };
 
-  // Apply Quick Preset Itasha Wrap (Miku, Sakura, Cyber)
-  const handleApplyPresetWrap = (presetType = 'miku') => {
-    let presetLayers = [];
-    let wrapColor = '#39c5bb';
-
-    if (presetType === 'miku') {
-      wrapColor = '#39c5bb';
-      presetLayers = [
-        {
-          id: `preset_layer_1`,
-          name: 'Hatsune Miku Hero Art',
-          imageUrl: DECAL_PRESETS[0].url,
-          visible: true,
-          opacity: 0.95,
-          blendMode: 'source-over',
-          lassoPoints: [],
-          transform: { posX: 0.5, posY: 0.45, scale: 0.75, rotation: 0, flipH: false, flipV: false }
-        },
-        {
-          id: `preset_layer_2`,
-          name: 'Kanji "痛車" Itasha Decal',
-          imageUrl: DECAL_PRESETS[2].url,
-          visible: true,
-          opacity: 1.0,
-          blendMode: 'source-over',
-          lassoPoints: [],
-          transform: { posX: 0.5, posY: 0.85, scale: 0.55, rotation: 0, flipH: false, flipV: false }
-        }
-      ];
-    } else if (presetType === 'sakura') {
-      wrapColor = '#ff007f';
-      presetLayers = [
-        {
-          id: `preset_layer_sakura_1`,
-          name: 'Sakura Petals',
-          imageUrl: DECAL_PRESETS[5].url,
-          visible: true,
-          opacity: 0.9,
-          blendMode: 'source-over',
-          lassoPoints: [],
-          transform: { posX: 0.5, posY: 0.4, scale: 0.8, rotation: 15, flipH: false, flipV: false }
-        },
-        {
-          id: `preset_layer_sakura_2`,
-          name: 'Speed Tribal Stripe',
-          imageUrl: DECAL_PRESETS[4].url,
-          visible: true,
-          opacity: 0.95,
-          blendMode: 'source-over',
-          lassoPoints: [],
-          transform: { posX: 0.5, posY: 0.8, scale: 0.6, rotation: 0, flipH: false, flipV: false }
-        }
-      ];
-    } else if (presetType === 'cyber') {
-      wrapColor = '#0f141d';
-      presetLayers = [
-        {
-          id: `preset_layer_cyber_1`,
-          name: 'Cyberpunk Girl',
-          imageUrl: DECAL_PRESETS[1].url,
-          visible: true,
-          opacity: 0.95,
-          blendMode: 'source-over',
-          lassoPoints: [],
-          transform: { posX: 0.5, posY: 0.5, scale: 0.7, rotation: 0, flipH: false, flipV: false }
-        },
-        {
-          id: `preset_layer_cyber_2`,
-          name: 'Kanji "初音ミク"',
-          imageUrl: DECAL_PRESETS[3].url,
-          visible: true,
-          opacity: 1.0,
-          blendMode: 'source-over',
-          lassoPoints: [],
-          transform: { posX: 0.5, posY: 0.85, scale: 0.5, rotation: 0, flipH: false, flipV: false }
-        }
-      ];
-    }
-
+  // Apply Complete Full-Wrap Preset Template (Miku, Cyberpunk, Sakura, Initial D)
+  const handleApplyPresetWrap = async (templateId) => {
+    const tpl = ITA_WRAP_TEMPLATES.find((t) => t.id === templateId) || ITA_WRAP_TEMPLATES[0];
     const panelsList = vehicleType === VEHICLE_TYPES.CAR ? CAR_PANELS : MOTORCYCLE_PANELS;
-    const updatedPanels = {};
+    const newLayersMap = {};
+
     panelsList.forEach((p) => {
-      updatedPanels[p.id] = presetLayers;
+      if (tpl.layers[p.id]) {
+        newLayersMap[p.id] = tpl.layers[p.id];
+      } else if (p.id.startsWith('door') && tpl.layers.door_l) {
+        newLayersMap[p.id] = tpl.layers.door_l;
+      } else if (p.id.startsWith('fairing') && tpl.layers.fairing_l) {
+        newLayersMap[p.id] = tpl.layers.fairing_l;
+      }
     });
 
-    setBodyColor(wrapColor);
-    setPanelLayers(updatedPanels);
-    updateAllTextures(updatedPanels, wrapColor);
-    pushHistoryState(updatedPanels, wrapColor, finishKey);
-    showToast(`Template Itasha Full Wrap (${presetType.toUpperCase()}) Berhasil Diterapkan Ke Seluruh Panel!`, 'success');
+    setBodyColor(tpl.bodyColor);
+    setFinishKey(tpl.finishKey);
+    setPanelLayers(newLayersMap);
+    await updateAllTextures(newLayersMap, tpl.bodyColor);
+    pushHistoryState(newLayersMap, tpl.bodyColor, tpl.finishKey);
+    showToast(`Template Itasha "${tpl.name}" Berhasil Diterapkan ke Seluruh Body!`, 'success');
   };
 
   // Save / Load JSON Project
   const handleSaveProject = () => {
     const projectData = {
-      version: '1.0',
+      version: '2.0',
       timestamp: new Date().toISOString(),
       vehicleType,
       modelId,
@@ -363,6 +307,7 @@ export default function App() {
       {/* Left Sidebar Paint & Panel Controls */}
       <PaintControls
         vehicleType={vehicleType}
+        modelId={modelId}
         bodyColor={bodyColor}
         finishKey={finishKey}
         selectedPanels={selectedPanels}
@@ -374,24 +319,25 @@ export default function App() {
         onOpenLassoEditor={() => setIsLassoEditorOpen(true)}
         onSelectAllPanels={handleSelectAllPanels}
         onClearPanelSelection={handleClearPanelSelection}
+        onApplyPresetWrap={handleApplyPresetWrap}
       />
 
-      {/* Quick Action Bar (Bottom Right Presets) */}
+      {/* Quick Action Floating Bar (Bottom Right Presets) */}
       <div style={{ position: 'absolute', bottom: '24px', right: '24px', zIndex: 90, display: 'flex', gap: '10px' }}>
         <button
           className="btn btn-accent glow-pulse-cyan"
           style={{ padding: '10px 18px', fontSize: '13px' }}
-          onClick={() => handleApplyPresetWrap('miku')}
-          title="Terapkan Template Full Wrap Miku Itasha"
+          onClick={() => handleApplyPresetWrap('miku_super_gt')}
+          title="Terapkan Template Full Wrap GoodSmile Miku Racing 2024"
         >
-          <Wand2 size={16} /> Template Miku Wrap
+          <Wand2 size={16} /> Miku GT300 Wrap
         </button>
 
         <button
           className="btn btn-secondary"
           style={{ padding: '10px 16px', fontSize: '13px', border: '1px solid var(--accent-pink)', color: 'var(--accent-pink)' }}
-          onClick={() => handleApplyPresetWrap('sakura')}
-          title="Terapkan Template Sakura Petals Wrap"
+          onClick={() => handleApplyPresetWrap('sakura_blossom')}
+          title="Terapkan Template Sakura Drift Wrap"
         >
           <Flower2 size={16} /> Sakura Wrap
         </button>
@@ -399,10 +345,19 @@ export default function App() {
         <button
           className="btn btn-secondary"
           style={{ padding: '10px 16px', fontSize: '13px', border: '1px solid var(--accent-cyan)', color: 'var(--accent-cyan)' }}
-          onClick={() => handleApplyPresetWrap('cyber')}
-          title="Terapkan Template Cyberpunk Wrap"
+          onClick={() => handleApplyPresetWrap('cyberpunk_2077')}
+          title="Terapkan Template Cyberpunk 2077 Wrap"
         >
           <Zap size={16} /> Cyberpunk Wrap
+        </button>
+
+        <button
+          className="btn btn-secondary"
+          style={{ padding: '10px 16px', fontSize: '13px', border: '1px solid #f59e0b', color: '#f59e0b' }}
+          onClick={() => handleApplyPresetWrap('akina_drift')}
+          title="Terapkan Template Initial D Akina Touge Wrap"
+        >
+          <Mountain size={16} /> Akina Touge Wrap
         </button>
       </div>
 

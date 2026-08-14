@@ -1,9 +1,13 @@
 import React from 'react';
-import { Palette, Layers, Edit3, Lock, Shield, Sparkles, Check, Info } from 'lucide-react';
-import { PAINT_FINISHES, DEFAULT_BODY_COLORS, CAR_PANELS, MOTORCYCLE_PANELS, VEHICLE_TYPES } from '../../utils/constants';
+import { Palette, Layers, Edit3, Lock, Shield, Sparkles, Check, Wand2, Flower2, Zap, Trophy, Flame } from 'lucide-react';
+import {
+  PAINT_FINISHES, DEFAULT_BODY_COLORS, CAR_PANELS, MOTORCYCLE_PANELS,
+  VEHICLE_TYPES, ITA_WRAP_TEMPLATES, REAL_CAR_MODELS, REAL_MOTORCYCLE_MODELS
+} from '../../utils/constants';
 
 export function PaintControls({
   vehicleType = VEHICLE_TYPES.CAR,
+  modelId = 'ferrari',
   bodyColor = '#39c5bb',
   finishKey = 'GLOSS',
   selectedPanels = [],
@@ -14,19 +18,22 @@ export function PaintControls({
   onTogglePanelSelection,
   onOpenLassoEditor,
   onSelectAllPanels,
-  onClearPanelSelection
+  onClearPanelSelection,
+  onApplyPresetWrap
 }) {
   const currentPanels = vehicleType === VEHICLE_TYPES.CAR ? CAR_PANELS : MOTORCYCLE_PANELS;
+  const currentModelList = vehicleType === VEHICLE_TYPES.CAR ? REAL_CAR_MODELS : REAL_MOTORCYCLE_MODELS;
+  const activeModel = currentModelList.find((m) => m.id === modelId) || currentModelList[0];
 
   return (
     <aside
       className="glass-panel"
       style={{
         position: 'absolute',
-        top: '80px',
+        top: '84px',
         left: '20px',
-        width: '320px',
-        maxHeight: 'calc(100vh - 100px)',
+        width: '340px',
+        maxHeight: 'calc(100vh - 108px)',
         zIndex: 90,
         borderRadius: '16px',
         padding: '20px',
@@ -36,14 +43,54 @@ export function PaintControls({
         gap: '20px'
       }}
     >
-      {/* Section 1: Paint Color & Finish */}
+      {/* Active Vehicle Info Badge */}
+      <div style={{ background: 'var(--bg-surface)', padding: '12px', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+          <span style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+            {vehicleType === VEHICLE_TYPES.CAR ? 'Mobil Real' : 'Motor Real'}
+          </span>
+          <span className="badge-active" style={{ fontSize: '10px' }}>{activeModel.badge}</span>
+        </div>
+        <h4 style={{ fontSize: '14px', color: '#fff', margin: 0 }}>{activeModel.name}</h4>
+        <p style={{ fontSize: '11px', color: 'var(--text-muted)', margin: '4px 0 0' }}>{activeModel.description}</p>
+      </div>
+
+      {/* Section 1: Itasha Full-Wrap Templates */}
       <div>
-        <h3 style={{ fontSize: '14px', color: 'var(--accent-cyan)', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <Palette size={16} /> Cat Dasar Kendaraan
+        <h3 style={{ fontSize: '13px', color: 'var(--accent-pink)', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <Sparkles size={16} /> Template Itasha Full Wrap
+        </h3>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+          {ITA_WRAP_TEMPLATES.map((tpl) => (
+            <button
+              key={tpl.id}
+              className="btn btn-secondary"
+              onClick={() => onApplyPresetWrap?.(tpl.id)}
+              style={{
+                padding: '8px 12px',
+                justifyContent: 'space-between',
+                border: `1px solid ${tpl.accentColor}55`,
+                textAlign: 'left'
+              }}
+            >
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', overflow: 'hidden' }}>
+                <span style={{ fontSize: '12px', fontWeight: '600', color: '#fff' }}>{tpl.name}</span>
+                <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>{tpl.tagline}</span>
+              </div>
+              <span className="badge-active" style={{ fontSize: '9px', whiteSpace: 'nowrap' }}>{tpl.badge}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Section 2: Paint Color & Finish */}
+      <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '16px' }}>
+        <h3 style={{ fontSize: '13px', color: 'var(--accent-cyan)', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <Palette size={16} /> Cat Dasar & Finishing
         </h3>
 
         {/* Finish Selector */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '6px', marginBottom: '14px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '6px', marginBottom: '12px' }}>
           {Object.keys(PAINT_FINISHES).map((key) => {
             const finish = PAINT_FINISHES[key];
             const isActive = finishKey === key;
@@ -79,7 +126,7 @@ export function PaintControls({
                 justifyContent: 'center'
               }}
             >
-              {bodyColor.toLowerCase() === c.hex.toLowerCase() && <Check size={14} color={c.hex === '#ffffff' ? '#000' : '#fff'} />}
+              {bodyColor.toLowerCase() === c.hex.toLowerCase() && <Check size={14} color={c.hex === '#f8fafc' || c.hex === '#ffffff' ? '#000' : '#fff'} />}
             </button>
           ))}
         </div>
@@ -96,10 +143,10 @@ export function PaintControls({
         </div>
       </div>
 
-      {/* Section 2: Body Panels Selection */}
+      {/* Section 3: Body Panels Selection */}
       <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '16px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-          <h3 style={{ fontSize: '14px', color: 'var(--accent-miku)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+          <h3 style={{ fontSize: '13px', color: 'var(--accent-miku)', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Layers size={16} /> Panel Body ({selectedPanels.length} Terpilih)
           </h3>
           <div style={{ display: 'flex', gap: '4px' }}>
@@ -112,12 +159,12 @@ export function PaintControls({
           </div>
         </div>
 
-        <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '10px' }}>
-          Pilih 1 atau beberapa panel (multi-select) untuk menggambar livery menyambung antar panel.
+        <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '8px' }}>
+          Pilih panel untuk mendesain gambar atau klik langsung pada model 3D.
         </p>
 
         {/* Panel List */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '220px', overflowY: 'auto' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '180px', overflowY: 'auto' }}>
           {currentPanels.map((panel) => {
             const isSelected = selectedPanels.includes(panel.id);
             const layersCount = panelLayers[panel.id]?.length || 0;
@@ -153,7 +200,7 @@ export function PaintControls({
                   >
                     {isSelected && <Check size={12} color="#000" />}
                   </div>
-                  <span style={{ fontSize: '13px', color: isSelected ? '#fff' : 'var(--text-main)', fontWeight: isSelected ? '600' : '400' }}>
+                  <span style={{ fontSize: '12px', color: isSelected ? '#fff' : 'var(--text-main)', fontWeight: isSelected ? '600' : '400' }}>
                     {panel.name}
                   </span>
                 </div>
@@ -167,7 +214,7 @@ export function PaintControls({
             );
           })}
 
-          {/* Locked Engine Item Indicator */}
+          {/* Locked Engine Item */}
           <div
             style={{
               padding: '8px 12px',
@@ -183,18 +230,18 @@ export function PaintControls({
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <Lock size={14} color="#f87171" />
-              <span style={{ fontSize: '12px', color: '#f87171', fontWeight: '600' }}>Mesin / Engine Bay</span>
+              <span style={{ fontSize: '12px', color: '#f87171', fontWeight: '600' }}>Komponen Mesin</span>
             </div>
-            <span className="badge-locked" style={{ fontSize: '10px', padding: '2px 6px' }}>
+            <span className="badge-locked" style={{ fontSize: '9px', padding: '2px 6px' }}>
               TERKUNCI
             </span>
           </div>
         </div>
       </div>
 
-      {/* Action Button: Edit Selected Panel with Lasso */}
+      {/* Action Button: Edit Selected Panel with Lasso & Image Studio */}
       <button
-        className="btn btn-accent"
+        className="btn btn-accent glow-pulse-cyan"
         disabled={selectedPanels.length === 0}
         onClick={onOpenLassoEditor}
         style={{
@@ -205,7 +252,7 @@ export function PaintControls({
           cursor: selectedPanels.length > 0 ? 'pointer' : 'not-allowed'
         }}
       >
-        <Edit3 size={16} /> Edit Panel (Buka Lasso & Image Studio)
+        <Edit3 size={16} /> Buka Studio Desain Decal & Lasso
       </button>
 
     </aside>

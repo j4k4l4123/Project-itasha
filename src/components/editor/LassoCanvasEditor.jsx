@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
   X, Upload, Image as ImageIcon, Trash2, Eye, EyeOff, ArrowUp, ArrowDown,
-  RotateCw, ZoomIn, Move, Layers, Check, RefreshCw, FlipHorizontal, Sparkles, AlertCircle
+  RotateCw, ZoomIn, Move, Layers, Check, RefreshCw, FlipHorizontal, FlipVertical,
+  Sparkles, AlertCircle, Search, Sliders
 } from 'lucide-react';
 import { DECAL_PRESETS } from '../../utils/constants';
 
@@ -14,12 +15,12 @@ export function LassoCanvasEditor({
 }) {
   const [layers, setLayers] = useState(initialLayers);
   const [activeLayerIndex, setActiveLayerIndex] = useState(0);
+  const [categoryFilter, setCategoryFilter] = useState('All');
 
   // Lasso Tool state: 'idle', 'drawing', 'complete'
   const [lassoMode, setLassoMode] = useState('idle');
   const [lassoPoints, setLassoPoints] = useState([]);
 
-  // Active layer transform state
   const canvasRef = useRef(null);
 
   useEffect(() => {
@@ -30,16 +31,16 @@ export function LassoCanvasEditor({
         setLassoPoints(initialLayers[0].lassoPoints);
       }
     } else {
-      // Create initial layer if none
+      // Default initial layer with Racing Miku
       const newDefaultLayer = {
         id: `layer_${Date.now()}`,
-        name: 'Decal Layer 1',
+        name: 'Racing Miku Decal',
         imageUrl: DECAL_PRESETS[0].url,
         visible: true,
         opacity: 1.0,
         blendMode: 'source-over',
         lassoPoints: [],
-        transform: { posX: 0.5, posY: 0.5, scale: 0.6, rotation: 0, flipH: false, flipV: false }
+        transform: { posX: 0.5, posY: 0.5, scale: 0.7, rotation: 0, flipH: false, flipV: false }
       };
       setLayers([newDefaultLayer]);
       setActiveLayerIndex(0);
@@ -57,30 +58,38 @@ export function LassoCanvasEditor({
 
     ctx.clearRect(0, 0, w, h);
 
-    // Background Panel Surface
-    ctx.fillStyle = '#161b26';
+    // Background Surface
+    ctx.fillStyle = '#0f141d';
     ctx.fillRect(0, 0, w, h);
 
-    // Render Grid
+    // Render Precision Grid Pattern
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
     ctx.lineWidth = 1;
-    for (let x = 0; x < w; x += 40) {
+    for (let x = 0; x < w; x += 30) {
       ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke();
     }
-    for (let y = 0; y < h; y += 40) {
+    for (let y = 0; y < h; y += 30) {
       ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
     }
 
-    // Draw active layers sequentially
+    // Center Guides
+    ctx.strokeStyle = 'rgba(0, 243, 255, 0.2)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(w / 2, 0); ctx.lineTo(w / 2, h); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(0, h / 2); ctx.lineTo(w, h / 2); ctx.stroke();
+
+    // Draw layers sequentially
     layers.forEach((layer, idx) => {
       if (!layer.visible || !layer.imageUrl) return;
 
       const img = new Image();
+      img.crossOrigin = 'anonymous';
       img.src = layer.imageUrl;
-      img.onload = () => {
+
+      const renderLayer = () => {
         ctx.save();
 
-        // Apply Lasso Mask if exists
+        // Apply Lasso Polygon Mask
         const pointsToUse = idx === activeLayerIndex && lassoPoints.length > 2 ? lassoPoints : layer.lassoPoints;
         if (pointsToUse && pointsToUse.length > 2) {
           ctx.beginPath();
@@ -92,25 +101,26 @@ export function LassoCanvasEditor({
           ctx.clip();
         }
 
-        ctx.globalAlpha = layer.opacity ?? 1.0;
+        ctx.globalAlpha = Math.max(0, Math.min(1, layer.opacity ?? 1.0));
         ctx.globalCompositeOperation = layer.blendMode || 'source-over';
 
-        const t = layer.transform || { posX: 0.5, posY: 0.5, scale: 0.5, rotation: 0, flipH: false, flipV: false };
-        const cx = t.posX * w;
-        const cy = t.posY * h;
-        const aspect = img.width / img.height;
-        const baseSize = w * t.scale;
+        const t = layer.transform || { posX: 0.5, posY: 0.5, scale: 0.7, rotation: 0, flipH: false, flipV: false };
+        const cx = (t.posX ?? 0.5) * w;
+        const cy = (t.posY ?? 0.5) * h;
+        const scaleVal = t.scale ?? 0.6;
+        const aspect = (img.width && img.height) ? (img.width / img.height) : 1;
+        const baseSize = w * scaleVal;
         const drawW = baseSize * (aspect >= 1 ? 1 : aspect);
         const drawH = baseSize * (aspect >= 1 ? (1 / aspect) : 1);
 
         ctx.translate(cx, cy);
-        ctx.rotate((t.rotation * Math.PI) / 180);
+        ctx.rotate(((t.rotation ?? 0) * Math.PI) / 180);
         ctx.scale(t.flipH ? -1 : 1, t.flipV ? -1 : 1);
 
         ctx.drawImage(img, -drawW / 2, -drawH / 2, drawW, drawH);
         ctx.restore();
 
-        // Draw active layer border box if active
+        // Draw active bounding border
         if (idx === activeLayerIndex) {
           ctx.save();
           ctx.strokeStyle = '#00f3ff';
@@ -120,13 +130,19 @@ export function LassoCanvasEditor({
           ctx.restore();
         }
       };
+
+      if (img.complete) {
+        renderLayer();
+      } else {
+        img.onload = renderLayer;
+      }
     });
 
-    // Render Lasso Path & Points Overlay
+    // Render Lasso Path Overlay
     if (lassoPoints.length > 0) {
       ctx.save();
       ctx.strokeStyle = '#ff007f';
-      ctx.lineWidth = 2;
+      ctx.lineWidth = 2.5;
       ctx.fillStyle = 'rgba(255, 0, 127, 0.15)';
       ctx.beginPath();
       ctx.moveTo(lassoPoints[0].x * w, lassoPoints[0].y * h);
@@ -139,7 +155,7 @@ export function LassoCanvasEditor({
       }
       ctx.stroke();
 
-      // Draw Lasso Vertices
+      // Draw vertices
       lassoPoints.forEach((pt) => {
         ctx.beginPath();
         ctx.arc(pt.x * w, pt.y * h, 5, 0, Math.PI * 2);
@@ -165,7 +181,6 @@ export function LassoCanvasEditor({
     const newPoints = [...lassoPoints, { x, y }];
     setLassoPoints(newPoints);
 
-    // Update active layer lasso points
     const updated = [...layers];
     if (updated[activeLayerIndex]) {
       updated[activeLayerIndex].lassoPoints = newPoints;
@@ -180,13 +195,13 @@ export function LassoCanvasEditor({
     const reader = new FileReader();
     reader.onload = (event) => {
       const dataUrl = event.target.result;
-      updateCurrentLayer({ imageUrl: dataUrl });
+      updateCurrentLayer({ imageUrl: dataUrl, name: file.name.replace(/\.[^/.]+$/, '') });
     };
     reader.readAsDataURL(file);
   };
 
-  const handleSelectPreset = (presetUrl) => {
-    updateCurrentLayer({ imageUrl: presetUrl });
+  const handleSelectPreset = (preset) => {
+    updateCurrentLayer({ imageUrl: preset.url, name: preset.name });
   };
 
   const updateCurrentLayer = (partial) => {
@@ -213,7 +228,7 @@ export function LassoCanvasEditor({
       opacity: 1.0,
       blendMode: 'source-over',
       lassoPoints: [],
-      transform: { posX: 0.5, posY: 0.5, scale: 0.5, rotation: 0, flipH: false, flipV: false }
+      transform: { posX: 0.5, posY: 0.5, scale: 0.6, rotation: 0, flipH: false, flipV: false }
     };
     setLayers([...layers, newLayer]);
     setActiveLayerIndex(layers.length);
@@ -242,18 +257,23 @@ export function LassoCanvasEditor({
     onClose?.();
   };
 
+  const categories = ['All', 'Anime Character', 'Typography', 'Sponsors & Badges', 'Graphic Livery'];
+  const filteredPresets = categoryFilter === 'All'
+    ? DECAL_PRESETS
+    : DECAL_PRESETS.filter((p) => p.category === categoryFilter);
+
   return (
     <div className="modal-overlay">
-      <div className="glass-panel" style={{ width: '1100px', maxWidth: '95vw', height: '88vh', borderRadius: '16px', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      <div className="glass-panel" style={{ width: '1180px', maxWidth: '96vw', height: '90vh', borderRadius: '16px', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
 
         {/* Modal Header */}
-        <div style={{ padding: '16px 24px', borderBottom: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ padding: '14px 24px', borderBottom: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
-            <h2 style={{ fontSize: '18px', color: 'var(--accent-cyan)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Sparkles size={20} /> 2D Lasso & Decal Layer Studio
+            <h2 style={{ fontSize: '18px', color: 'var(--accent-cyan)', display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
+              <Sparkles size={20} /> Studio Desain Decal & Lasso Itasha
             </h2>
-            <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
-              Panel Terpilih: <strong style={{ color: '#fff' }}>{selectedPanelNames.join(', ') || 'Semua Panel'}</strong>
+            <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '2px 0 0' }}>
+              Target Panel: <strong style={{ color: '#fff' }}>{selectedPanelNames.join(', ') || 'Semua Panel'}</strong>
             </p>
           </div>
           <button className="btn-icon" onClick={onClose}>
@@ -262,19 +282,19 @@ export function LassoCanvasEditor({
         </div>
 
         {/* Modal Body Grid */}
-        <div style={{ flex: 1, display: 'grid', gridTemplateColumns: '1fr 340px', overflow: 'hidden' }}>
+        <div style={{ flex: 1, display: 'grid', gridTemplateColumns: '1fr 380px', overflow: 'hidden' }}>
 
-          {/* Left Canvas Preview Area */}
-          <div style={{ background: '#0d1017', padding: '20px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden' }}>
+          {/* Left Canvas Studio */}
+          <div style={{ background: '#090d15', padding: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden' }}>
 
-            {/* Lasso Toolbar Bar */}
-            <div className="glass-panel-light" style={{ position: 'absolute', top: '20px', display: 'flex', gap: '8px', zIndex: 10, padding: '6px 12px', borderRadius: '30px' }}>
+            {/* Lasso Toolbar */}
+            <div className="glass-panel-light" style={{ position: 'absolute', top: '16px', display: 'flex', gap: '8px', zIndex: 10, padding: '6px 14px', borderRadius: '30px' }}>
               <button
                 className={`btn ${lassoMode === 'drawing' ? 'btn-accent' : 'btn-secondary'}`}
                 style={{ padding: '6px 12px', fontSize: '12px' }}
                 onClick={() => setLassoMode(lassoMode === 'drawing' ? 'complete' : 'drawing')}
               >
-                ✏️ {lassoMode === 'drawing' ? 'Selesai Draw Lasso' : 'Gambar Lasso Area'}
+                ✏️ {lassoMode === 'drawing' ? 'Selesai Buat Lasso' : 'Tarik Area Lasso'}
               </button>
               <button
                 className="btn btn-secondary"
@@ -285,19 +305,19 @@ export function LassoCanvasEditor({
                   updateCurrentLayer({ lassoPoints: [] });
                 }}
               >
-                <RefreshCw size={14} /> Reset Lasso
+                <RefreshCw size={14} /> Reset Mask
               </button>
             </div>
 
-            {/* Main Interactive 2D Canvas */}
+            {/* 2D Interactive Canvas */}
             <canvas
               ref={canvasRef}
-              width={600}
-              height={600}
+              width={650}
+              height={650}
               onClick={handleCanvasClick}
               style={{
                 width: '100%',
-                maxHeight: 'calc(88vh - 160px)',
+                maxHeight: 'calc(90vh - 150px)',
                 aspectRatio: '1/1',
                 borderRadius: '12px',
                 border: '1px solid var(--border-color)',
@@ -306,26 +326,28 @@ export function LassoCanvasEditor({
               }}
             />
 
-            <p style={{ marginTop: '10px', fontSize: '12px', color: 'var(--text-muted)', textAlign: 'center' }}>
-              {lassoMode === 'drawing' ? 'Klik di area canvas untuk menambahkan titik sudut Lasso polygon.' : 'Gambar otomatis ter-mask di dalam batas area Lasso.'}
+            <p style={{ marginTop: '8px', fontSize: '11px', color: 'var(--text-muted)', textAlign: 'center' }}>
+              {lassoMode === 'drawing'
+                ? 'Klik pada canvas untuk membuat polygon clipping mask.'
+                : 'Decal otomatis terproyeksikan ke model 3D saat diterapkan.'}
             </p>
           </div>
 
-          {/* Right Layer & Controls Sidebar */}
-          <div style={{ borderLeft: '1px solid var(--border-color)', padding: '20px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          {/* Right Controls Sidebar */}
+          <div style={{ borderLeft: '1px solid var(--border-color)', padding: '16px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '16px' }}>
 
-            {/* 1. Layers List Section */}
+            {/* 1. Layers Stack */}
             <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                <h4 style={{ fontSize: '14px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <Layers size={16} /> Stack Decal Layers ({layers.length})
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                <h4 style={{ fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px', margin: 0 }}>
+                  <Layers size={15} /> Layer Decal ({layers.length})
                 </h4>
-                <button className="btn btn-primary" style={{ padding: '4px 10px', fontSize: '12px' }} onClick={addLayer}>
-                  + Layer
+                <button className="btn btn-primary" style={{ padding: '3px 8px', fontSize: '11px' }} onClick={addLayer}>
+                  + Tambah Layer
                 </button>
               </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '180px', overflowY: 'auto' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '140px', overflowY: 'auto' }}>
                 {layers.map((layer, idx) => (
                   <div
                     key={layer.id || idx}
@@ -334,7 +356,7 @@ export function LassoCanvasEditor({
                       setLassoPoints(layer.lassoPoints || []);
                     }}
                     style={{
-                      padding: '8px 12px',
+                      padding: '6px 10px',
                       borderRadius: '8px',
                       background: idx === activeLayerIndex ? 'rgba(0, 243, 255, 0.12)' : 'var(--bg-surface)',
                       border: idx === activeLayerIndex ? '1px solid var(--accent-cyan)' : '1px solid var(--border-color)',
@@ -344,40 +366,21 @@ export function LassoCanvasEditor({
                       cursor: 'pointer'
                     }}
                   >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      <img src={layer.imageUrl} alt="" style={{ width: '28px', height: '28px', borderRadius: '4px', objectFit: 'contain', background: '#000' }} />
-                      <span style={{ fontSize: '13px', fontWeight: idx === activeLayerIndex ? '600' : '400' }}>{layer.name}</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden' }}>
+                      <img src={layer.imageUrl} alt="" style={{ width: '24px', height: '24px', borderRadius: '4px', objectFit: 'contain', background: '#000' }} />
+                      <span style={{ fontSize: '12px', fontWeight: idx === activeLayerIndex ? '600' : '400', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
+                        {layer.name}
+                      </span>
                     </div>
 
-                    <div style={{ display: 'flex', gap: '4px' }}>
-                      <button
-                        className="btn-icon"
-                        style={{ padding: '4px' }}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          moveLayer(idx, -1);
-                        }}
-                      >
+                    <div style={{ display: 'flex', gap: '2px' }}>
+                      <button className="btn-icon" style={{ padding: '3px' }} onClick={(e) => { e.stopPropagation(); moveLayer(idx, -1); }}>
                         <ArrowUp size={12} />
                       </button>
-                      <button
-                        className="btn-icon"
-                        style={{ padding: '4px' }}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          moveLayer(idx, 1);
-                        }}
-                      >
+                      <button className="btn-icon" style={{ padding: '3px' }} onClick={(e) => { e.stopPropagation(); moveLayer(idx, 1); }}>
                         <ArrowDown size={12} />
                       </button>
-                      <button
-                        className="btn-icon"
-                        style={{ padding: '4px', color: '#ef4444' }}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          deleteLayer(idx);
-                        }}
-                      >
+                      <button className="btn-icon" style={{ padding: '3px', color: '#ef4444' }} onClick={(e) => { e.stopPropagation(); deleteLayer(idx); }}>
                         <Trash2 size={12} />
                       </button>
                     </div>
@@ -386,32 +389,50 @@ export function LassoCanvasEditor({
               </div>
             </div>
 
-            {/* 2. Image Source & Presets */}
-            <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '16px' }}>
-              <h4 style={{ fontSize: '13px', marginBottom: '10px' }}>Upload Gambar / Preset Itasha</h4>
+            {/* 2. Upload Custom Image or Select Preset */}
+            <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '12px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                <h4 style={{ fontSize: '13px', margin: 0 }}>Pustaka Decal & Upload</h4>
+                <label className="btn btn-primary" style={{ padding: '4px 10px', fontSize: '11px', gap: '6px' }}>
+                  <Upload size={13} /> Upload Gambar
+                  <input type="file" accept="image/*" onChange={handleFileUpload} style={{ display: 'none' }} />
+                </label>
+              </div>
 
-              <label className="btn btn-secondary" style={{ width: '100%', marginBottom: '12px', gap: '8px' }}>
-                <Upload size={16} /> Pilih File Gambar (PNG/JPG)
-                <input type="file" accept="image/*" onChange={handleFileUpload} style={{ display: 'none' }} />
-              </label>
+              {/* Category Filter Pills */}
+              <div style={{ display: 'flex', gap: '4px', overflowX: 'auto', paddingBottom: '6px', marginBottom: '8px' }}>
+                {categories.map((cat) => (
+                  <button
+                    key={cat}
+                    className={`btn ${categoryFilter === cat ? 'btn-primary' : 'btn-secondary'}`}
+                    style={{ padding: '3px 8px', fontSize: '10px', whiteSpace: 'nowrap' }}
+                    onClick={() => setCategoryFilter(cat)}
+                  >
+                    {cat}
+                  </button>
+                ))}
+              </div>
 
-              {/* Presets Grid */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
-                {DECAL_PRESETS.map((preset) => (
+              {/* Preset Thumbnails Grid */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px', maxHeight: '160px', overflowY: 'auto' }}>
+                {filteredPresets.map((preset) => (
                   <div
                     key={preset.id}
-                    onClick={() => handleSelectPreset(preset.url)}
+                    onClick={() => handleSelectPreset(preset)}
                     style={{
                       padding: '6px',
                       background: 'var(--bg-surface)',
                       borderRadius: '8px',
                       border: '1px solid var(--border-color)',
                       cursor: 'pointer',
-                      textAlign: 'center'
+                      textAlign: 'center',
+                      transition: 'border 0.15s ease'
                     }}
+                    onMouseEnter={(e) => e.currentTarget.style.borderColor = 'var(--accent-cyan)'}
+                    onMouseLeave={(e) => e.currentTarget.style.borderColor = 'var(--border-color)'}
                   >
-                    <img src={preset.url} alt={preset.name} style={{ width: '100%', height: '45px', objectFit: 'contain' }} />
-                    <span style={{ fontSize: '10px', color: 'var(--text-muted)', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <img src={preset.url} alt={preset.name} style={{ width: '100%', height: '42px', objectFit: 'contain' }} />
+                    <span style={{ fontSize: '9px', color: 'var(--text-muted)', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: '2px' }}>
                       {preset.name}
                     </span>
                   </div>
@@ -419,29 +440,29 @@ export function LassoCanvasEditor({
               </div>
             </div>
 
-            {/* 3. Transform Controls (Pos, Scale, Rotation, Opacity) */}
-            <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '16px' }}>
-              <h4 style={{ fontSize: '13px', marginBottom: '10px' }}>Transformasi & Stiling</h4>
+            {/* 3. Transform & Styling Sliders */}
+            <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '12px' }}>
+              <h4 style={{ fontSize: '13px', marginBottom: '8px' }}>Transformasi & Efek Layer</h4>
 
               {/* Scale Slider */}
-              <div style={{ marginBottom: '10px' }}>
-                <label style={{ fontSize: '12px', color: 'var(--text-muted)', display: 'flex', justifyContent: 'space-between' }}>
-                  Skala / Ukuran <span>{Math.round((currentLayer?.transform?.scale ?? 0.5) * 100)}%</span>
+              <div style={{ marginBottom: '8px' }}>
+                <label style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'flex', justifyContent: 'space-between' }}>
+                  Ukuran / Skala <span>{Math.round((currentLayer?.transform?.scale ?? 0.6) * 100)}%</span>
                 </label>
                 <input
                   type="range"
                   min="0.1"
-                  max="1.5"
+                  max="1.8"
                   step="0.02"
-                  value={currentLayer?.transform?.scale ?? 0.5}
+                  value={currentLayer?.transform?.scale ?? 0.6}
                   onChange={(e) => updateCurrentLayer({ transform: { scale: parseFloat(e.target.value) } })}
                   style={{ width: '100%' }}
                 />
               </div>
 
               {/* Rotation Slider */}
-              <div style={{ marginBottom: '10px' }}>
-                <label style={{ fontSize: '12px', color: 'var(--text-muted)', display: 'flex', justifyContent: 'space-between' }}>
+              <div style={{ marginBottom: '8px' }}>
+                <label style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'flex', justifyContent: 'space-between' }}>
                   Rotasi <span>{Math.round(currentLayer?.transform?.rotation ?? 0)}°</span>
                 </label>
                 <input
@@ -456,9 +477,9 @@ export function LassoCanvasEditor({
               </div>
 
               {/* Opacity Slider */}
-              <div style={{ marginBottom: '10px' }}>
-                <label style={{ fontSize: '12px', color: 'var(--text-muted)', display: 'flex', justifyContent: 'space-between' }}>
-                  Opasitas Layer <span>{Math.round((currentLayer?.opacity ?? 1.0) * 100)}%</span>
+              <div style={{ marginBottom: '8px' }}>
+                <label style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'flex', justifyContent: 'space-between' }}>
+                  Opasitas <span>{Math.round((currentLayer?.opacity ?? 1.0) * 100)}%</span>
                 </label>
                 <input
                   type="range"
@@ -471,10 +492,10 @@ export function LassoCanvasEditor({
                 />
               </div>
 
-              {/* Posisi X & Y Sliders */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '10px' }}>
+              {/* Position X & Y */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '8px' }}>
                 <div>
-                  <label style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Posisi X</label>
+                  <label style={{ fontSize: '10px', color: 'var(--text-muted)' }}>Posisi X ({Math.round((currentLayer?.transform?.posX ?? 0.5) * 100)}%)</label>
                   <input
                     type="range"
                     min="0"
@@ -486,7 +507,7 @@ export function LassoCanvasEditor({
                   />
                 </div>
                 <div>
-                  <label style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Posisi Y</label>
+                  <label style={{ fontSize: '10px', color: 'var(--text-muted)' }}>Posisi Y ({Math.round((currentLayer?.transform?.posY ?? 0.5) * 100)}%)</label>
                   <input
                     type="range"
                     min="0"
@@ -499,22 +520,29 @@ export function LassoCanvasEditor({
                 </div>
               </div>
 
-              {/* Flip Buttons */}
-              <div style={{ display: 'flex', gap: '8px' }}>
+              {/* Flip & Blend Mode */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
                 <button
-                  className="btn btn-secondary"
-                  style={{ flex: 1, padding: '6px', fontSize: '12px' }}
+                  className={`btn ${currentLayer?.transform?.flipH ? 'btn-accent' : 'btn-secondary'}`}
+                  style={{ padding: '6px', fontSize: '11px' }}
                   onClick={() => updateCurrentLayer({ transform: { flipH: !currentLayer?.transform?.flipH } })}
                 >
-                  <FlipHorizontal size={14} /> Flip Horisontal
+                  <FlipHorizontal size={13} /> Flip H
+                </button>
+                <button
+                  className={`btn ${currentLayer?.transform?.flipV ? 'btn-accent' : 'btn-secondary'}`}
+                  style={{ padding: '6px', fontSize: '11px' }}
+                  onClick={() => updateCurrentLayer({ transform: { flipV: !currentLayer?.transform?.flipV } })}
+                >
+                  <FlipVertical size={13} /> Flip V
                 </button>
               </div>
             </div>
 
             {/* Apply Button */}
             <button
-              className="btn btn-primary"
-              style={{ width: '100%', padding: '12px', marginTop: 'auto', gap: '8px' }}
+              className="btn btn-accent glow-pulse-cyan"
+              style={{ width: '100%', padding: '12px', marginTop: 'auto', gap: '8px', fontSize: '13px' }}
               onClick={handleApplyTo3D}
             >
               <Check size={18} /> Terapkan Livery ke Model 3D
