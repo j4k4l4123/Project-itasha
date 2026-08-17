@@ -119,9 +119,10 @@ export default function App() {
   };
 
   // 3D Model Pointer Click Handler
-  const handlePanelClick = (partId, isEngine) => {
-    if (isEngine) {
-      showToast('🔒 KOMPONEN MESIN TERKUNCI! Bagian mekanikal mesin tidak dapat dimodifikasi livery.', 'warning');
+  const handlePanelClick = (partId, isLocked, label) => {
+    if (isLocked) {
+      const partName = label || (partId === 'engine' ? 'Mesin' : (partId === 'glass' ? 'Kaca & Visor' : (partId === 'mirror' ? 'Spion' : (partId === 'seat' ? 'Jok Motor' : 'Komponen Terkunci'))));
+      showToast(`🔒 ${partName.toUpperCase()} TERKUNCI! Komponen ini (kaca, spion, jok, atau mesin) tidak dapat dimodifikasi cat / livery.`, 'warning');
       return;
     }
     setSelectedPanels([partId]);
@@ -130,8 +131,8 @@ export default function App() {
 
   // 3D Model Hover Handler
   const handlePartHover = (info) => {
-    setHoveredPart(info?.id || null);
-    if (info?.isEngine) {
+    setHoveredPart(info || null);
+    if (info?.isLocked || info?.isEngine) {
       document.body.style.cursor = 'not-allowed';
     } else if (info) {
       document.body.style.cursor = 'pointer';
@@ -323,10 +324,19 @@ export default function App() {
       />
 
       {/* Quick Action Floating Bar (Bottom Right Presets) */}
-      <div style={{ position: 'absolute', bottom: '24px', right: '24px', zIndex: 90, display: 'flex', gap: '10px' }}>
+      <div style={{ position: 'absolute', bottom: '24px', right: '24px', zIndex: 90, display: 'flex', gap: '10px', flexWrap: 'wrap', justifyContent: 'flex-end', maxWidth: '80vw' }}>
         <button
           className="btn btn-accent glow-pulse-cyan"
-          style={{ padding: '10px 18px', fontSize: '13px' }}
+          style={{ padding: '10px 18px', fontSize: '13px', background: 'linear-gradient(135deg, #00d2ff, #0077fe)', border: '1px solid #00f0ff', color: '#fff', boxShadow: '0 0 20px rgba(0, 210, 255, 0.5)' }}
+          onClick={() => handleApplyPresetWrap('rem_rezero_itasha')}
+          title="Terapkan Template Re:Zero Rem Demon Oni Full Wrap (Dari Contoh Gambar)"
+        >
+          <Sparkles size={16} /> 💙 Re:Zero Rem Wrap
+        </button>
+
+        <button
+          className="btn btn-secondary"
+          style={{ padding: '10px 16px', fontSize: '13px', border: '1px solid var(--accent-miku)', color: 'var(--accent-miku)' }}
           onClick={() => handleApplyPresetWrap('miku_super_gt')}
           title="Terapkan Template Full Wrap GoodSmile Miku Racing 2024"
         >

@@ -145,13 +145,13 @@ export const REAL_MOTORCYCLE_MODELS = [
   },
   {
     id: 'maxi_scooter',
-    name: 'Yamaha NMAX / Honda PCX 160',
+    name: 'Yamaha NMAX 155 Connected',
     category: 'Urban Maxi-Scooter',
-    path: null,
-    type: 'modular',
-    scale: 1.0,
-    position: [0, 0, 0],
-    description: 'Comfortable commuter maxi-scooter with aerodynamic front visor and wide side body.',
+    path: '/models/nmax_motorbike.glb',
+    type: 'gltf',
+    scale: 0.011,
+    position: [0, 0.08, 0],
+    description: 'Authentic Yamaha NMAX 155cc connected maxi-scooter with aerodynamic cowlings, wide side body, and aggressive dual LED front fascia.',
     badge: '🏙️ Maxi-Matic'
   }
 ];
@@ -216,6 +216,50 @@ const makeSvgUri = (svgStr) => `data:image/svg+xml;charset=utf-8,${encodeURIComp
 // ==========================================
 
 export const DECAL_PRESETS = [
+  // 0. AUTHENTIC RE:ZERO REM ITASHA PRESETS (From Decal Sheet)
+  {
+    id: 'preset_rem_front_cowl',
+    name: 'Rem Maid Hero (Front Fairing / Hood)',
+    category: 'Anime Character',
+    url: '/decals/rem_front_cowl.png'
+  },
+  {
+    id: 'preset_rem_berserk_l',
+    name: 'Rem Berserk Oni Mode (Side Fairing L / Door)',
+    category: 'Anime Character',
+    url: '/decals/rem_side_fairing_left.png'
+  },
+  {
+    id: 'preset_rem_berserk_r',
+    name: 'Rem Berserk Oni Mode (Side Fairing R / Door)',
+    category: 'Anime Character',
+    url: '/decals/rem_side_fairing_right.png'
+  },
+  {
+    id: 'preset_rem_chains_splash',
+    name: 'Re:Zero Morningstar Chains & Splatter',
+    category: 'Graphic Livery',
+    url: '/decals/rem_chains_splash.png'
+  },
+  {
+    id: 'preset_rem_side_strips',
+    name: 'Re:Zero Side Strips & Japanese Logo',
+    category: 'Typography',
+    url: '/decals/rem_side_strips.png'
+  },
+  {
+    id: 'preset_rem_chibi',
+    name: 'Chibi Rem Kawaii Sticker',
+    category: 'Anime Character',
+    url: '/decals/rem_chibi_sticker.png'
+  },
+  {
+    id: 'preset_rem_full_sheet',
+    name: 'Full Re:Zero Wrap Decal Sheet (Original)',
+    category: 'Graphic Livery',
+    url: '/decals/rem_rezero_wrap_sheet.jpg'
+  },
+
   // 1. ANIME CHARACTERS
   {
     id: 'preset_miku_racing_2024',
@@ -530,6 +574,187 @@ export const DECAL_PRESETS = [
 // ==========================================
 
 export const ITA_WRAP_TEMPLATES = [
+  {
+    id: 'rem_rezero_itasha',
+    name: 'Re:Zero Rem "Demon Oni" Itasha (Official Decal Wrap)',
+    tagline: 'Authentic Cyan Ice, Morningstar Chains & Berserk Rem Wrap',
+    bodyColor: '#00d2ff',
+    finishKey: 'METALLIC',
+    badge: '💙 Re:Zero Rem',
+    accentColor: '#00d2ff',
+    layers: {
+      // 1. Car Panels
+      hood: [
+        {
+          id: 'wrap_rem_hood_hero',
+          name: 'Rem Maid Hero & Logo',
+          imageUrl: '/decals/rem_front_cowl.png',
+          visible: true,
+          opacity: 1.0,
+          blendMode: 'source-over',
+          lassoPoints: [],
+          transform: { posX: 0.5, posY: 0.5, scale: 0.85, rotation: 0, flipH: false, flipV: false }
+        }
+      ],
+      door_l: [
+        {
+          id: 'wrap_rem_doorl_hero',
+          name: 'Berserk Rem Side Livery L',
+          imageUrl: '/decals/rem_side_fairing_left.png',
+          visible: true,
+          opacity: 1.0,
+          blendMode: 'source-over',
+          lassoPoints: [],
+          transform: { posX: 0.5, posY: 0.5, scale: 0.95, rotation: 0, flipH: false, flipV: false }
+        }
+      ],
+      door_r: [
+        {
+          id: 'wrap_rem_doorr_hero',
+          name: 'Berserk Rem Side Livery R',
+          imageUrl: '/decals/rem_side_fairing_right.png',
+          visible: true,
+          opacity: 1.0,
+          blendMode: 'source-over',
+          lassoPoints: [],
+          transform: { posX: 0.5, posY: 0.5, scale: 0.95, rotation: 0, flipH: false, flipV: false }
+        }
+      ],
+      roof: [
+        {
+          id: 'wrap_rem_roof_splash',
+          name: 'Morningstar Chains & Ice Splatter',
+          imageUrl: '/decals/rem_chains_splash.png',
+          visible: true,
+          opacity: 1.0,
+          blendMode: 'source-over',
+          lassoPoints: [],
+          transform: { posX: 0.5, posY: 0.5, scale: 0.85, rotation: 0, flipH: false, flipV: false }
+        }
+      ],
+      fender_l: [
+        {
+          id: 'wrap_rem_fenderl',
+          name: 'Re:Zero Japanese Racing Strip L',
+          imageUrl: '/decals/rem_side_strips.png',
+          visible: true,
+          opacity: 1.0,
+          blendMode: 'source-over',
+          lassoPoints: [],
+          transform: { posX: 0.5, posY: 0.5, scale: 0.8, rotation: 0, flipH: false, flipV: false }
+        }
+      ],
+      fender_r: [
+        {
+          id: 'wrap_rem_fenderr',
+          name: 'Re:Zero Japanese Racing Strip R',
+          imageUrl: '/decals/rem_side_strips.png',
+          visible: true,
+          opacity: 1.0,
+          blendMode: 'source-over',
+          lassoPoints: [],
+          transform: { posX: 0.5, posY: 0.5, scale: 0.8, rotation: 0, flipH: true, flipV: false }
+        }
+      ],
+      spoiler: [
+        {
+          id: 'wrap_rem_spoiler',
+          name: 'Re:Zero Chains Accent',
+          imageUrl: '/decals/rem_chains_splash.png',
+          visible: true,
+          opacity: 1.0,
+          blendMode: 'source-over',
+          lassoPoints: [],
+          transform: { posX: 0.5, posY: 0.5, scale: 0.75, rotation: 0, flipH: false, flipV: false }
+        }
+      ],
+      bumper_f: [
+        {
+          id: 'wrap_rem_bumperf',
+          name: 'Chibi Rem Front Decal',
+          imageUrl: '/decals/rem_chibi_sticker.png',
+          visible: true,
+          opacity: 1.0,
+          blendMode: 'source-over',
+          lassoPoints: [],
+          transform: { posX: 0.5, posY: 0.5, scale: 0.5, rotation: 0, flipH: false, flipV: false }
+        }
+      ],
+      // 2. Motorcycle Panels (NMAX, Superbike, Vespa, etc.)
+      fairing_f: [
+        {
+          id: 'wrap_rem_fairingf',
+          name: 'Rem Maid Front Cowl / Kedok Wrap',
+          imageUrl: '/decals/rem_front_cowl.png',
+          visible: true,
+          opacity: 1.0,
+          blendMode: 'source-over',
+          lassoPoints: [],
+          transform: { posX: 0.5, posY: 0.5, scale: 0.9, rotation: 0, flipH: false, flipV: false }
+        }
+      ],
+      fairing_l: [
+        {
+          id: 'wrap_rem_fairingl',
+          name: 'Berserk Rem Side Fairing L',
+          imageUrl: '/decals/rem_side_fairing_left.png',
+          visible: true,
+          opacity: 1.0,
+          blendMode: 'source-over',
+          lassoPoints: [],
+          transform: { posX: 0.5, posY: 0.5, scale: 0.95, rotation: 0, flipH: false, flipV: false }
+        }
+      ],
+      fairing_r: [
+        {
+          id: 'wrap_rem_fairingr',
+          name: 'Berserk Rem Side Fairing R',
+          imageUrl: '/decals/rem_side_fairing_right.png',
+          visible: true,
+          opacity: 1.0,
+          blendMode: 'source-over',
+          lassoPoints: [],
+          transform: { posX: 0.5, posY: 0.5, scale: 0.95, rotation: 0, flipH: false, flipV: false }
+        }
+      ],
+      tank: [
+        {
+          id: 'wrap_rem_tank',
+          name: 'Re:Zero Chains Crest',
+          imageUrl: '/decals/rem_chains_splash.png',
+          visible: true,
+          opacity: 1.0,
+          blendMode: 'source-over',
+          lassoPoints: [],
+          transform: { posX: 0.5, posY: 0.5, scale: 0.8, rotation: 0, flipH: false, flipV: false }
+        }
+      ],
+      tail: [
+        {
+          id: 'wrap_rem_tail',
+          name: 'Re:Zero Tail Accent',
+          imageUrl: '/decals/rem_side_strips.png',
+          visible: true,
+          opacity: 1.0,
+          blendMode: 'source-over',
+          lassoPoints: [],
+          transform: { posX: 0.5, posY: 0.5, scale: 0.8, rotation: 90, flipH: false, flipV: false }
+        }
+      ],
+      fender_f: [
+        {
+          id: 'wrap_rem_fenderf',
+          name: 'Re:Zero Front Fender Decal',
+          imageUrl: '/decals/rem_side_strips.png',
+          visible: true,
+          opacity: 1.0,
+          blendMode: 'source-over',
+          lassoPoints: [],
+          transform: { posX: 0.5, posY: 0.5, scale: 0.8, rotation: 0, flipH: false, flipV: false }
+        }
+      ]
+    }
+  },
   {
     id: 'miku_super_gt',
     name: 'GoodSmile Hatsune Miku Racing 2024 (Official Super GT Style)',

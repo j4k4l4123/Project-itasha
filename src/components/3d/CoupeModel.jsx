@@ -11,7 +11,7 @@ export function CoupeModel({
 
   const createPanelMaterial = (panelId) => {
     const isSelected = selectedPanels.includes(panelId);
-    const isHovered = hoveredPart === panelId;
+    const isHovered = hoveredPart?.id === panelId;
     const texture = panelTextures[panelId] || null;
     return new THREE.MeshPhysicalMaterial({
       color: texture ? '#ffffff' : bodyColor, map: texture,
@@ -23,7 +23,7 @@ export function CoupeModel({
     });
   };
 
-  const isEngineHovered = hoveredPart === 'engine';
+  const isEngineHovered = hoveredPart?.id === 'engine';
   const engineMat = useMemo(() => new THREE.MeshStandardMaterial({
     color: isEngineHovered ? '#ef4444' : '#2a2f3a', metalness: 0.9, roughness: 0.3,
     emissive: isEngineHovered ? '#dc2626' : '#000000', emissiveIntensity: isEngineHovered ? 0.4 : 0
@@ -36,9 +36,9 @@ export function CoupeModel({
   const tire = useMemo(() => new THREE.MeshStandardMaterial({ color: '#1a1a1a', roughness: 0.9 }), []);
   const carbonMat = useMemo(() => new THREE.MeshStandardMaterial({ color: '#1a1a1a', roughness: 0.5, metalness: 0.3 }), []);
 
-  const hov = (e, id, eng = false) => { e.stopPropagation(); onPartHover?.({ id, isEngine: eng }); };
+  const hov = (e, id, isLocked = false, label = '') => { e.stopPropagation(); onPartHover?.({ id, isLocked, label }); };
   const out = (e) => { e.stopPropagation(); onPartHover?.(null); };
-  const clk = (e, id, eng = false) => { e.stopPropagation(); onPanelClick?.(id, eng); };
+  const clk = (e, id, isLocked = false, label = '') => { e.stopPropagation(); onPanelClick?.(id, isLocked, label); };
 
   return (
     <group ref={groupRef}>
@@ -104,25 +104,27 @@ export function CoupeModel({
 
       {/* === ENGINE (LOCKED) === */}
       <group position={[0, 0.45, 0.9]}
-        onPointerOver={e => hov(e, 'engine', true)} onPointerOut={out} onClick={e => clk(e, 'engine', true)}>
+        onPointerOver={e => hov(e, 'engine', true, 'Mesin Coupe')} onPointerOut={out} onClick={e => clk(e, 'engine', true, 'Mesin Coupe')}>
         <mesh material={engineMat}><boxGeometry args={[0.85, 0.3, 0.65]} /></mesh>
         <mesh position={[-0.28, 0.18, 0.05]} material={chrome}><cylinderGeometry args={[0.1, 0.1, 0.18, 16]} /></mesh>
         <mesh position={[0.28, 0.18, 0.05]} material={chrome}><cylinderGeometry args={[0.1, 0.1, 0.18, 16]} /></mesh>
       </group>
 
-      {/* === NON-EDITABLE === */}
-      <mesh position={[0, 0.85, 0.42]} rotation={[-0.55, 0, 0]} material={glass}>
-        <boxGeometry args={[1.42, 0.04, 0.6]} />
-      </mesh>
-      <mesh position={[0, 0.92, -1.0]} rotation={[0.5, 0, 0]} material={glass}>
-        <boxGeometry args={[1.38, 0.04, 0.55]} />
-      </mesh>
-      <mesh position={[-0.86, 0.88, -0.3]} rotation={[0, 0, 0.1]} material={glass}>
-        <boxGeometry args={[0.04, 0.35, 0.95]} />
-      </mesh>
-      <mesh position={[0.86, 0.88, -0.3]} rotation={[0, 0, -0.1]} material={glass}>
-        <boxGeometry args={[0.04, 0.35, 0.95]} />
-      </mesh>
+      {/* === LOCKED GLASS (Kaca) === */}
+      <group onPointerOver={e => hov(e, 'glass', true, 'Kaca Coupe')} onPointerOut={out} onClick={e => clk(e, 'glass', true, 'Kaca Coupe')}>
+        <mesh position={[0, 0.85, 0.42]} rotation={[-0.55, 0, 0]} material={glass}>
+          <boxGeometry args={[1.42, 0.04, 0.6]} />
+        </mesh>
+        <mesh position={[0, 0.92, -1.0]} rotation={[0.5, 0, 0]} material={glass}>
+          <boxGeometry args={[1.38, 0.04, 0.55]} />
+        </mesh>
+        <mesh position={[-0.86, 0.88, -0.3]} rotation={[0, 0, 0.1]} material={glass}>
+          <boxGeometry args={[0.04, 0.35, 0.95]} />
+        </mesh>
+        <mesh position={[0.86, 0.88, -0.3]} rotation={[0, 0, -0.1]} material={glass}>
+          <boxGeometry args={[0.04, 0.35, 0.95]} />
+        </mesh>
+      </group>
       {/* Pop-up headlight housings */}
       <mesh position={[-0.6, 0.48, 1.9]} material={headlight}><boxGeometry args={[0.3, 0.1, 0.08]} /></mesh>
       <mesh position={[0.6, 0.48, 1.9]} material={headlight}><boxGeometry args={[0.3, 0.1, 0.08]} /></mesh>

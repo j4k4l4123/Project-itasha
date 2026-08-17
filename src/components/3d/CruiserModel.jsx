@@ -11,7 +11,7 @@ export function CruiserModel({
 
   const createPanelMaterial = (panelId) => {
     const isSelected = selectedPanels.includes(panelId);
-    const isHovered = hoveredPart === panelId;
+    const isHovered = hoveredPart?.id === panelId;
     const texture = panelTextures[panelId] || null;
     return new THREE.MeshPhysicalMaterial({
       color: texture ? '#ffffff' : bodyColor, map: texture,
@@ -23,7 +23,7 @@ export function CruiserModel({
     });
   };
 
-  const isEngineHovered = hoveredPart === 'engine';
+  const isEngineHovered = hoveredPart?.id === 'engine';
   const engineMat = useMemo(() => new THREE.MeshStandardMaterial({
     color: isEngineHovered ? '#ef4444' : '#27272a', metalness: 0.9, roughness: 0.25,
     emissive: isEngineHovered ? '#dc2626' : '#000', emissiveIntensity: isEngineHovered ? 0.4 : 0
@@ -35,9 +35,9 @@ export function CruiserModel({
   const taillight = useMemo(() => new THREE.MeshStandardMaterial({ color: '#ff0033', emissive: '#ff0033', emissiveIntensity: 2 }), []);
   const seat = useMemo(() => new THREE.MeshStandardMaterial({ color: '#3b1f0a', roughness: 0.95 }), []);
 
-  const hov = (e, id, eng = false) => { e.stopPropagation(); onPartHover?.({ id, isEngine: eng }); };
+  const hov = (e, id, isLocked = false, label = '') => { e.stopPropagation(); onPartHover?.({ id, isLocked, label }); };
   const out = (e) => { e.stopPropagation(); onPartHover?.(null); };
-  const clk = (e, id, eng = false) => { e.stopPropagation(); onPanelClick?.(id, eng); };
+  const clk = (e, id, isLocked = false, label = '') => { e.stopPropagation(); onPanelClick?.(id, isLocked, label); };
 
   return (
     <group ref={groupRef}>
@@ -69,7 +69,7 @@ export function CruiserModel({
 
       {/* V-Twin Engine (LOCKED) */}
       <group position={[0, 0.52, 0.0]}
-        onPointerOver={e => hov(e, 'engine', true)} onPointerOut={out} onClick={e => clk(e, 'engine', true)}>
+        onPointerOver={e => hov(e, 'engine', true, 'Mesin V-Twin')} onPointerOut={out} onClick={e => clk(e, 'engine', true, 'Mesin V-Twin')}>
         <mesh material={engineMat}><boxGeometry args={[0.45, 0.38, 0.5]} /></mesh>
         {/* V-Twin cylinders */}
         <mesh position={[0, 0.22, 0.12]} rotation={[0.4, 0, 0]} material={chrome}>
@@ -89,11 +89,13 @@ export function CruiserModel({
 
       {/* Frame */}
       <mesh position={[0, 0.7, 0.05]} material={chrome}><boxGeometry args={[0.18, 0.12, 1.1]} /></mesh>
-      {/* Stepped Seat */}
-      <mesh position={[0, 0.82, -0.35]} rotation={[-0.05, 0, 0]} material={seat}>
+      {/* Locked Stepped Seat */}
+      <mesh position={[0, 0.82, -0.35]} rotation={[-0.05, 0, 0]} material={seat}
+        onPointerOver={e => hov(e, 'seat', true, 'Jok Cruiser')} onPointerOut={out} onClick={e => clk(e, 'seat', true, 'Jok Cruiser')}>
         <boxGeometry args={[0.35, 0.1, 0.55]} />
       </mesh>
-      <mesh position={[0, 0.78, -0.7]} material={seat}>
+      <mesh position={[0, 0.78, -0.7]} material={seat}
+        onPointerOver={e => hov(e, 'seat', true, 'Jok Belakang Cruiser')} onPointerOut={out} onClick={e => clk(e, 'seat', true, 'Jok Belakang Cruiser')}>
         <boxGeometry args={[0.38, 0.1, 0.35]} />
       </mesh>
       {/* High Handlebars */}
@@ -102,8 +104,9 @@ export function CruiserModel({
           <cylinderGeometry args={[0.025, 0.025, 0.75, 12]} />
         </mesh>
       </group>
-      {/* Round Headlight */}
-      <mesh position={[0, 0.9, 1.15]} material={headlight}>
+      {/* Locked Glass Headlight */}
+      <mesh position={[0, 0.9, 1.15]} material={headlight}
+        onPointerOver={e => hov(e, 'glass', true, 'Kaca Lampu Depan')} onPointerOut={out} onClick={e => clk(e, 'glass', true, 'Kaca Lampu Depan')}>
         <sphereGeometry args={[0.1, 16, 16]} />
       </mesh>
       {/* Taillight */}

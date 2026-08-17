@@ -122,7 +122,7 @@ function GLTFCarViewer({
   }, [bodyColor, finish, selectedPanels, hoveredPart, compositeTexture]);
 
   // Locked Engine Material
-  const isEngineHovered = hoveredPart === 'engine';
+  const isEngineHovered = hoveredPart?.id === 'engine';
   const engineMaterial = useMemo(() => new THREE.MeshStandardMaterial({
     color: isEngineHovered ? '#ef4444' : '#232733',
     metalness: 0.9,
@@ -157,19 +157,27 @@ function GLTFCarViewer({
         if (meshName.includes('metal') || meshName.includes('engine') || matName.includes('engine') || parentName.includes('engine')) {
           child.material = engineMaterial;
         }
-        // 2. Glass / Windows
-        else if (meshName.includes('glass') || matName.includes('glass') || meshName.includes('window')) {
+        // 2. Glass / Windows (Locked)
+        else if (meshName.includes('glass') || matName.includes('glass') || meshName.includes('window') || meshName.includes('windshield')) {
           child.material = glassMaterial;
         }
-        // 3. Carbon Fibre Trim
+        // 3. Spion / Mirrors (Locked)
+        else if (meshName.includes('mirror') || matName.includes('mirror') || parentName.includes('mirror')) {
+          child.material = carbonMaterial;
+        }
+        // 4. Seats / Interior (Locked)
+        else if (meshName.includes('seat') || matName.includes('seat') || meshName.includes('interior') || matName.includes('interior')) {
+          child.material = carbonMaterial;
+        }
+        // 5. Carbon Fibre Trim
         else if (meshName.includes('carbon') || matName.includes('carbon')) {
           child.material = carbonMaterial;
         }
-        // 4. Chrome / Exhaust / Grill
+        // 6. Chrome / Exhaust / Grill
         else if (meshName.includes('chrome') || matName.includes('chrome') || meshName.includes('grills')) {
           child.material = chromeMaterial;
         }
-        // 5. Main Car Paint & Body Panels (takes Itasha paint & texture)
+        // 7. Main Car Paint & Body Panels (takes Itasha paint & texture)
         else if (
           meshName.includes('body') ||
           matName.includes('body') ||
@@ -188,31 +196,62 @@ function GLTFCarViewer({
   }, [clonedScene, carPaintMaterial, engineMaterial, glassMaterial, carbonMaterial, chromeMaterial]);
 
   // Click & Hover raycast detection
-  const getPanelFromPoint = (point, meshName = '') => {
-    if (!point) return { id: selectedPanels[0] || 'hood', isEngine: false };
+  const getPanelFromPoint = (point, meshName = '', parentName = '', matName = '') => {
+    if (!point) return { id: selectedPanels[0] || 'hood', isLocked: false };
     const { x, y, z } = point;
+    const lowerMesh = meshName.toLowerCase();
+    const lowerParent = parentName.toLowerCase();
+    const lowerMat = matName.toLowerCase();
 
-    // Mid/Rear Engine bay detection
-    if (meshName.toLowerCase().includes('metal') || (z < -0.2 && z > -1.0 && y > 0.4 && y < 0.95 && Math.abs(x) < 0.45)) {
-      return { id: 'engine', isEngine: true };
+    // 1. Spion (Mirrors)
+    if (
+      lowerMesh.includes('mirror') || lowerParent.includes('mirror') || lowerMat.includes('mirror') ||
+      (y > 0.8 && y < 1.15 && Math.abs(x) > 0.85 && z > -0.2 && z < 0.3)
+    ) {
+      return { id: 'mirror', isLocked: true, label: 'Spion Mobil' };
     }
 
-    if (z > 0.3 && y > 0.35 && Math.abs(x) < 0.65) return { id: 'hood', isEngine: false };
-    if (y > 0.95 && z < 0.3 && z > -0.65 && Math.abs(x) < 0.65) return { id: 'roof', isEngine: false };
-    if (x < -0.5 && z < 0.4 && z > -0.5) return { id: 'door_l', isEngine: false };
-    if (x > 0.5 && z < 0.4 && z > -0.5) return { id: 'door_r', isEngine: false };
-    if (z > 1.2) return { id: 'bumper_f', isEngine: false };
-    if (z < -1.3) return { id: 'bumper_r', isEngine: false };
-    if (z < -1.0 && y > 0.8) return { id: 'spoiler', isEngine: false };
-    if (x < -0.5 && z > 0.4) return { id: 'fender_l', isEngine: false };
-    if (x > 0.5 && z > 0.4) return { id: 'fender_r', isEngine: false };
+    // 2. Kaca (Windows / Windshield)
+    if (
+      lowerMesh.includes('glass') || lowerMat.includes('glass') || lowerMesh.includes('window') ||
+      (y > 0.95 && y < 1.35 && Math.abs(x) < 0.75 && z > -0.8 && z < 0.5)
+    ) {
+      return { id: 'glass', isLocked: true, label: 'Kaca Mobil' };
+    }
 
-    return { id: selectedPanels[0] || 'hood', isEngine: false };
+    // 3. Kursi / Interior
+    if (
+      lowerMesh.includes('seat') || lowerMat.includes('seat') || lowerMesh.includes('interior') ||
+      (y < 0.9 && y > 0.3 && Math.abs(x) < 0.5 && z < 0.2 && z > -0.6)
+    ) {
+      return { id: 'seat', isLocked: true, label: 'Interior & Kursi' };
+    }
+
+    // 4. Mesin / Engine bay
+    if (
+      lowerMesh.includes('metal') || lowerMesh.includes('engine') || lowerMat.includes('engine') ||
+      (z < -0.2 && z > -1.0 && y > 0.4 && y < 0.95 && Math.abs(x) < 0.45)
+    ) {
+      return { id: 'engine', isLocked: true, label: 'Mesin Mobil' };
+    }
+
+    // 5. Paintable Panels
+    if (z > 0.3 && y > 0.35 && Math.abs(x) < 0.65) return { id: 'hood', isLocked: false, label: 'Kap Mesin' };
+    if (y > 0.95 && z < 0.3 && z > -0.65 && Math.abs(x) < 0.65) return { id: 'roof', isLocked: false, label: 'Atap' };
+    if (x < -0.5 && z < 0.4 && z > -0.5) return { id: 'door_l', isLocked: false, label: 'Pintu Kiri' };
+    if (x > 0.5 && z < 0.4 && z > -0.5) return { id: 'door_r', isLocked: false, label: 'Pintu Kanan' };
+    if (z > 1.2) return { id: 'bumper_f', isLocked: false, label: 'Bumper Depan' };
+    if (z < -1.3) return { id: 'bumper_r', isLocked: false, label: 'Bumper Belakang' };
+    if (z < -1.0 && y > 0.8) return { id: 'spoiler', isLocked: false, label: 'Spoiler' };
+    if (x < -0.5 && z > 0.4) return { id: 'fender_l', isLocked: false, label: 'Fender Kiri' };
+    if (x > 0.5 && z > 0.4) return { id: 'fender_r', isLocked: false, label: 'Fender Kanan' };
+
+    return { id: selectedPanels[0] || 'hood', isLocked: false };
   };
 
   const handlePointerOver = (e) => {
     e.stopPropagation();
-    const panel = getPanelFromPoint(e.point, e.object?.name || '');
+    const panel = getPanelFromPoint(e.point, e.object?.name || '', e.object?.parent?.name || '', e.object?.material?.name || '');
     onPartHover?.(panel);
   };
 
@@ -223,20 +262,22 @@ function GLTFCarViewer({
 
   const handleClick = (e) => {
     e.stopPropagation();
-    const panel = getPanelFromPoint(e.point, e.object?.name || '');
-    onPanelClick?.(panel.id, panel.isEngine);
+    const panel = getPanelFromPoint(e.point, e.object?.name || '', e.object?.parent?.name || '', e.object?.material?.name || '');
+    onPanelClick?.(panel.id, panel.isLocked, panel.label);
   };
 
   // 3D Hotspot markers for intuitive panel clicking
   const panelHotspots = [
-    { id: 'hood', pos: [0, 0.75, 0.9], label: 'Kap Mesin' },
-    { id: 'roof', pos: [0, 1.35, -0.3], label: 'Atap' },
-    { id: 'door_l', pos: [-0.9, 0.65, -0.15], label: 'Pintu Kiri' },
-    { id: 'door_r', pos: [0.9, 0.65, -0.15], label: 'Pintu Kanan' },
-    { id: 'bumper_f', pos: [0, 0.4, 1.75], label: 'Bumper Depan' },
-    { id: 'bumper_r', pos: [0, 0.5, -1.8], label: 'Bumper Belakang' },
-    { id: 'spoiler', pos: [0, 1.25, -1.65], label: 'Spoiler' },
-    { id: 'engine', pos: [0, 0.6, -0.6], label: '🔒 Mesin (Locked)', isEngine: true }
+    { id: 'hood', pos: [0, 0.75, 0.9], label: 'Kap Mesin', isLocked: false },
+    { id: 'roof', pos: [0, 1.35, -0.3], label: 'Atap', isLocked: false },
+    { id: 'door_l', pos: [-0.9, 0.65, -0.15], label: 'Pintu Kiri', isLocked: false },
+    { id: 'door_r', pos: [0.9, 0.65, -0.15], label: 'Pintu Kanan', isLocked: false },
+    { id: 'bumper_f', pos: [0, 0.4, 1.75], label: 'Bumper Depan', isLocked: false },
+    { id: 'bumper_r', pos: [0, 0.5, -1.8], label: 'Bumper Belakang', isLocked: false },
+    { id: 'spoiler', pos: [0, 1.25, -1.65], label: 'Spoiler', isLocked: false },
+    { id: 'glass', pos: [0, 1.15, 0.35], label: '🔒 Kaca Depan (Locked)', isLocked: true },
+    { id: 'mirror', pos: [-0.98, 0.92, 0.25], label: '🔒 Spion (Locked)', isLocked: true },
+    { id: 'engine', pos: [0, 0.6, -0.6], label: '🔒 Mesin (Locked)', isLocked: true }
   ];
 
   return (
@@ -251,7 +292,7 @@ function GLTFCarViewer({
       {/* 3D Hotspot markers */}
       {panelHotspots.map((spot) => {
         const isSelected = selectedPanels.includes(spot.id);
-        const isHovered = hoveredPart === spot.id;
+        const isHovered = hoveredPart?.id === spot.id;
 
         return (
           <mesh
@@ -259,21 +300,21 @@ function GLTFCarViewer({
             position={spot.pos}
             onPointerOver={(e) => {
               e.stopPropagation();
-              onPartHover?.({ id: spot.id, isEngine: !!spot.isEngine });
+              onPartHover?.({ id: spot.id, isLocked: !!spot.isLocked, label: spot.label });
             }}
             onPointerOut={handlePointerOut}
             onClick={(e) => {
               e.stopPropagation();
-              onPanelClick?.(spot.id, !!spot.isEngine);
+              onPanelClick?.(spot.id, !!spot.isLocked, spot.label);
             }}
           >
-            <sphereGeometry args={[0.06, 16, 16]} />
+            <sphereGeometry args={[spot.isLocked ? 0.045 : 0.06, 16, 16]} />
             <meshStandardMaterial
-              color={spot.isEngine ? '#ef4444' : (isSelected ? '#00f3ff' : (isHovered ? '#39c5bb' : '#ffffff'))}
-              emissive={spot.isEngine ? '#dc2626' : (isSelected ? '#00f3ff' : (isHovered ? '#39c5bb' : '#222222'))}
-              emissiveIntensity={isSelected ? 1.5 : (isHovered ? 1.0 : 0.3)}
+              color={spot.isLocked ? '#ef4444' : (isSelected ? '#00f3ff' : (isHovered ? '#39c5bb' : '#ffffff'))}
+              emissive={spot.isLocked ? '#dc2626' : (isSelected ? '#00f3ff' : (isHovered ? '#39c5bb' : '#222222'))}
+              emissiveIntensity={isSelected ? 1.5 : (isHovered ? 1.0 : (spot.isLocked ? 0.6 : 0.3))}
               transparent
-              opacity={isSelected || isHovered || spot.isEngine ? 0.9 : 0.35}
+              opacity={isSelected || isHovered || spot.isLocked ? 0.9 : 0.35}
             />
           </mesh>
         );
@@ -296,7 +337,7 @@ function AE86DriftModel({
 }) {
   const createPanelMat = (panelId) => {
     const isSelected = selectedPanels.includes(panelId);
-    const isHovered = hoveredPart === panelId;
+    const isHovered = hoveredPart?.id === panelId;
     const tex = panelTextures[panelId] || null;
 
     return new THREE.MeshPhysicalMaterial({
@@ -313,7 +354,7 @@ function AE86DriftModel({
     });
   };
 
-  const isEngineHovered = hoveredPart === 'engine';
+  const isEngineHovered = hoveredPart?.id === 'engine';
   const engineMat = useMemo(() => new THREE.MeshStandardMaterial({
     color: isEngineHovered ? '#ef4444' : '#222630',
     metalness: 0.9,
@@ -330,9 +371,9 @@ function AE86DriftModel({
   const headlight = useMemo(() => new THREE.MeshStandardMaterial({ color: '#fffbe6', emissive: '#fffbe6', emissiveIntensity: 2.5 }), []);
   const taillight = useMemo(() => new THREE.MeshStandardMaterial({ color: '#ff0033', emissive: '#ff0033', emissiveIntensity: 2 }), []);
 
-  const hov = (e, id, isEngine = false) => { e.stopPropagation(); onPartHover?.({ id, isEngine }); };
+  const hov = (e, id, isLocked = false, label = '') => { e.stopPropagation(); onPartHover?.({ id, isLocked, label }); };
   const out = (e) => { e.stopPropagation(); onPartHover?.(null); };
-  const clk = (e, id, isEngine = false) => { e.stopPropagation(); onPanelClick?.(id, isEngine); };
+  const clk = (e, id, isLocked = false, label = '') => { e.stopPropagation(); onPanelClick?.(id, isLocked, label); };
 
   return (
     <group position={[0, 0, 0]}>
@@ -401,18 +442,20 @@ function AE86DriftModel({
       </mesh>
 
       {/* === LOCKED 4A-GE ENGINE BAY === */}
-      <group position={[0, 0.48, 0.95]} onPointerOver={e => hov(e, 'engine', true)} onPointerOut={out} onClick={e => clk(e, 'engine', true)}>
+      <group position={[0, 0.48, 0.95]} onPointerOver={e => hov(e, 'engine', true, 'Mesin 4A-GE Twin Cam')} onPointerOut={out} onClick={e => clk(e, 'engine', true, 'Mesin 4A-GE Twin Cam')}>
         <mesh material={engineMat}><boxGeometry args={[0.75, 0.3, 0.6]} /></mesh>
         {/* Red Twin-Cam Cover */}
         <mesh position={[0, 0.18, 0]} material={redCamCover}><boxGeometry args={[0.45, 0.08, 0.4]} /></mesh>
         <mesh position={[-0.22, 0.12, 0.15]} material={chrome}><cylinderGeometry args={[0.08, 0.08, 0.15, 16]} /></mesh>
       </group>
 
-      {/* Glass / Windows */}
-      <mesh position={[0, 0.92, 0.48]} rotation={[-0.5, 0, 0]} material={glass}><boxGeometry args={[1.32, 0.04, 0.65]} /></mesh>
-      <mesh position={[0, 0.96, -0.98]} rotation={[0.45, 0, 0]} material={glass}><boxGeometry args={[1.28, 0.04, 0.6]} /></mesh>
-      <mesh position={[-0.74, 0.9, -0.22]} material={glass}><boxGeometry args={[0.03, 0.35, 1.1]} /></mesh>
-      <mesh position={[0.74, 0.9, -0.22]} material={glass}><boxGeometry args={[0.03, 0.35, 1.1]} /></mesh>
+      {/* Locked Glass / Windows */}
+      <group onPointerOver={e => hov(e, 'glass', true, 'Kaca AE86')} onPointerOut={out} onClick={e => clk(e, 'glass', true, 'Kaca AE86')}>
+        <mesh position={[0, 0.92, 0.48]} rotation={[-0.5, 0, 0]} material={glass}><boxGeometry args={[1.32, 0.04, 0.65]} /></mesh>
+        <mesh position={[0, 0.96, -0.98]} rotation={[0.45, 0, 0]} material={glass}><boxGeometry args={[1.28, 0.04, 0.6]} /></mesh>
+        <mesh position={[-0.74, 0.9, -0.22]} material={glass}><boxGeometry args={[0.03, 0.35, 1.1]} /></mesh>
+        <mesh position={[0.74, 0.9, -0.22]} material={glass}><boxGeometry args={[0.03, 0.35, 1.1]} /></mesh>
+      </group>
 
       {/* Pop-Up Headlights (AE86 signature) */}
       <group position={[-0.52, 0.68, 1.62]} rotation={[-0.25, 0, 0]}>
@@ -453,7 +496,7 @@ function RallySedanModel({
 }) {
   const createPanelMat = (panelId) => {
     const isSelected = selectedPanels.includes(panelId);
-    const isHovered = hoveredPart === panelId;
+    const isHovered = hoveredPart?.id === panelId;
     const tex = panelTextures[panelId] || null;
 
     return new THREE.MeshPhysicalMaterial({
@@ -470,7 +513,7 @@ function RallySedanModel({
     });
   };
 
-  const isEngineHovered = hoveredPart === 'engine';
+  const isEngineHovered = hoveredPart?.id === 'engine';
   const engineMat = useMemo(() => new THREE.MeshStandardMaterial({
     color: isEngineHovered ? '#ef4444' : '#272a33',
     metalness: 0.9,
@@ -487,9 +530,9 @@ function RallySedanModel({
   const taillight = useMemo(() => new THREE.MeshStandardMaterial({ color: '#ff0055', emissive: '#ff0055', emissiveIntensity: 2.5 }), []);
   const tire = useMemo(() => new THREE.MeshStandardMaterial({ color: '#1a1a1a', roughness: 0.95 }), []);
 
-  const hov = (e, id, isEngine = false) => { e.stopPropagation(); onPartHover?.({ id, isEngine }); };
+  const hov = (e, id, isLocked = false, label = '') => { e.stopPropagation(); onPartHover?.({ id, isLocked, label }); };
   const out = (e) => { e.stopPropagation(); onPartHover?.(null); };
-  const clk = (e, id, isEngine = false) => { e.stopPropagation(); onPanelClick?.(id, isEngine); };
+  const clk = (e, id, isLocked = false, label = '') => { e.stopPropagation(); onPanelClick?.(id, isLocked, label); };
 
   return (
     <group position={[0, 0, 0]}>
@@ -560,16 +603,18 @@ function RallySedanModel({
       </mesh>
 
       {/* Locked Turbo Engine Bay */}
-      <group position={[0, 0.5, 1.05]} onPointerOver={e => hov(e, 'engine', true)} onPointerOut={out} onClick={e => clk(e, 'engine', true)}>
+      <group position={[0, 0.5, 1.05]} onPointerOver={e => hov(e, 'engine', true, 'Mesin Turbo 4G63')} onPointerOut={out} onClick={e => clk(e, 'engine', true, 'Mesin Turbo 4G63')}>
         <mesh material={engineMat}><boxGeometry args={[0.85, 0.32, 0.65]} /></mesh>
         <mesh position={[0.25, 0.18, 0.1]} material={chrome}><cylinderGeometry args={[0.1, 0.1, 0.18, 16]} /></mesh>
       </group>
 
-      {/* Glass */}
-      <mesh position={[0, 0.96, 0.55]} rotation={[-0.5, 0, 0]} material={glass}><boxGeometry args={[1.48, 0.05, 0.72]} /></mesh>
-      <mesh position={[0, 1.0, -1.05]} rotation={[0.4, 0, 0]} material={glass}><boxGeometry args={[1.42, 0.05, 0.62]} /></mesh>
-      <mesh position={[-0.82, 0.95, -0.25]} material={glass}><boxGeometry args={[0.04, 0.4, 1.35]} /></mesh>
-      <mesh position={[0.82, 0.95, -0.25]} material={glass}><boxGeometry args={[0.04, 0.4, 1.35]} /></mesh>
+      {/* Locked Glass / Windows */}
+      <group onPointerOver={e => hov(e, 'glass', true, 'Kaca Lancer Evo')} onPointerOut={out} onClick={e => clk(e, 'glass', true, 'Kaca Lancer Evo')}>
+        <mesh position={[0, 0.96, 0.55]} rotation={[-0.5, 0, 0]} material={glass}><boxGeometry args={[1.48, 0.05, 0.72]} /></mesh>
+        <mesh position={[0, 1.0, -1.05]} rotation={[0.4, 0, 0]} material={glass}><boxGeometry args={[1.42, 0.05, 0.62]} /></mesh>
+        <mesh position={[-0.82, 0.95, -0.25]} material={glass}><boxGeometry args={[0.04, 0.4, 1.35]} /></mesh>
+        <mesh position={[0.82, 0.95, -0.25]} material={glass}><boxGeometry args={[0.04, 0.4, 1.35]} /></mesh>
+      </group>
 
       {/* Lights & Intercooler */}
       <mesh position={[-0.58, 0.52, 1.98]} material={headlight}><boxGeometry args={[0.42, 0.12, 0.08]} /></mesh>
